@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live BPM Monitor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding-top: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        video {
+            width: 80%;
+            max-width: 600px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        #statusMessage {
+            font-size: 20px;
+            margin: 10px;
+            color: #555;
+        }
+
+        #bpmBox {
+            width: 250px;
+            height: 150px;
+            background: linear-gradient(135deg, #4CAF50, #81C784);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: background 0.5s;
+        }
+
+        #progressBar {
+            width: 80%;
+            max-width: 600px;
+            background-color: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        #progressBarFill {
+            width: 0%;
+            height: 20px;
+            background-color: #4CAF50;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+            transition: width 0.3s;
+        }
+
+        #faceStatus {
+            font-weight: bold;
+            margin: 10px;
+            color: red;
+        }
+
+        canvas {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-time BPM Monitor</h1>
+    <div id="faceStatus">Face: Not Detected</div>
+    <video id="video" autoplay muted></video>
+    <div id="statusMessage">Lütfen bekleyin, ölçüm yapılıyor...</div>
+    <div id="bpmBox">--</div>
+    <div id="progressBar">
+        <div id="progressBarFill">0%</div>
+    </div>
+    <canvas id="bpmChart" width="600" height="300"></canvas>
+
+    <!-- Yüz algılama -->
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <!-- Grafik kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        let mediaRecorder;
+        let recordedChunks = [];
+        const video = document.getElementById('video');
+        const progressBarFill = document.getElementById('progressBarFill');
+        const faceStatus = document.getElementById('faceStatus');
+        const bpmBox = document.getElementById('bpmBox');
+        const statusMessage = document.getElementById('statusMessage');
+        const bpmChart = document.getElementById('bpmChart').getContext('2d');
+
+        let isRecording = false;
+        let faceDetected = false;
+        let firstRecording = true;
+        let bpmData = []; // BPM geçmişi
+        let labels = [];  // Zaman etiketleri
+
+        // Chart.js grafik ayarı
+        const chart = new Chart(bpmChart, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'BPM',
+                    data: bpmData,
+                    borderColor: '#4CAF50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        suggestedMin: 40,
+                        suggestedMax: 160
+                    }
+                }
+            }
+        });
+
+        function getCurrentTime() {
+            const now = new Date();
+            return now.toLocaleTimeString();
+        }
+
+        async function setupCamera() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            video.srcObject = stream;
+            setupRecorder(stream);
+        }
+
+        function setupRecorder(stream) {
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+
+            mediaRecorder.ondataavailable = function (e) {
+                if (e.data.size > 0) {
+                    recordedChunks.push(e.data);
+                }
+            };
+
+            mediaRecorder.onstop = function () {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                uploadVideo(blob);
+                recordedChunks = [];
+                isRecording = false;
+            };
+        }
+
+        async function startFaceDetection() {
+            await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+            setInterval(async () => {
+                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
+                if (detections.length > 0) {
+                    faceDetected = true;
+                    faceStatus.textContent = "Face: Detected";
+                    faceStatus.style.color = "green";
+                } else {
+                    faceDetected = false;
+                    faceStatus.textContent = "Face: Not Detected";
+                    faceStatus.style.color = "red";
+                }
+            }, 1000);
+        }
+
+        function startRecording() {
+            if (faceDetected) {
+                mediaRecorder.start();
+                isRecording = true;
+                statusMessage.textContent = "Ölçüm yapılıyor...";
+            }
+        }
+
+        function stopRecording() {
+            if (isRecording) {
+                mediaRecorder.stop();
+            }
+        }
+
+        function uploadVideo(blob) {
+            const formData = new FormData();
+            formData.append('file', blob, 'recorded_video.webm');
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', 'https://f994-188-124-6-8.ngrok-free.app/upload', true);
+
+
+            xhr.upload.onprogress = function (e) {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    progressBarFill.style.width = percentComplete + '%';
+                    progressBarFill.textContent = Math.floor(percentComplete) + '%';
+                }
+            };
+
+            xhr.onload = function () {
+                if (xhr.status == 200) {
+                    const result = JSON.parse(xhr.responseText);
+                    updateBpmBox(result.bpm);
+                    addBpmData(result.bpm);
+                    statusMessage.textContent = "BPM Hesaplandı!";
+                } else {
+                    updateBpmBox('--');
+                    statusMessage.textContent = "Hata oluştu!";
+                }
+            };
+
+            xhr.onerror = function () {
+                updateBpmBox('--');
+                statusMessage.textContent = "Bağlantı hatası!";
+            };
+
+            xhr.send(formData);
+        }
+
+        function updateBpmBox(bpm) {
+            bpmBox.textContent = bpm;
+            bpmBox.style.background = bpm < 60 ? 'linear-gradient(135deg, #2196F3, #64B5F6)'
+                                 : bpm > 100 ? 'linear-gradient(135deg, #f44336, #e57373)'
+                                 : 'linear-gradient(135deg, #4CAF50, #81C784)';
+        }
+
+        function addBpmData(bpm) {
+            const now = getCurrentTime();
+            labels.push(now);
+            bpmData.push(bpm);
+
+            // En fazla 20 data tutalım
+            if (labels.length > 20) {
+                labels.shift();
+                bpmData.shift();
+            }
+
+            chart.update();
+        }
+
+        async function startSystem() {
+            await setupCamera();
+            await startFaceDetection();
+
+            if (firstRecording) {
+                startRecording();
+                setTimeout(() => {
+                    stopRecording();
+                    firstRecording = false;
+                    setInterval(() => {
+                        if (!isRecording) {
+                            startRecording();
+                            setTimeout(stopRecording, 2000); // 2 saniye kayıt
+                        }
+                    }, 2000);
+                }, 15000); // İlk 15 saniye uzun kayıt
+            }
+        }
+
+        startSystem();
+    </script>
+</body>
+</html>
