@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>HeartSync - Live BPM Monitor</title>
+    <title>Heart Rate - Live BPM Monitor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
@@ -18,6 +19,10 @@
             min-height: 100vh;
             overflow-x: hidden;
             position: relative;
+            display: flex; /* Use flexbox for centering content */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Animated background particles */
@@ -46,8 +51,13 @@
             flex-direction: column;
             align-items: center;
             padding: 20px;
-            min-height: 100vh;
+            width: 100%;
+            max-width: 1200px;
             backdrop-filter: blur(10px);
+            border-radius: 20px; /* Added for overall container aesthetics */
+            background: rgba(255, 255, 255, 0.05); /* Light background for the container */
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            margin: 20px auto; /* Center the container with margin */
         }
 
         h1 {
@@ -70,10 +80,9 @@
 
         .main-grid {
             display: grid;
-            grid-template-columns: 1fr 300px;
+            grid-template-columns: 1fr 300px; /* Two columns: video/progress and stats */
             gap: 30px;
             width: 100%;
-            max-width: 1200px;
             margin-bottom: 30px;
         }
 
@@ -85,6 +94,10 @@
 
         .video-container {
             position: relative;
+            width: 100%; /* Make video container responsive */
+            max-width: 800px; /* Daha geniş bir yatay görünüm için artırıldı */
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio (9/16 * 100%) */
+            height: 0; /* Important for aspect ratio trick */
             border-radius: 20px;
             overflow: hidden;
             background: rgba(255, 255, 255, 0.1);
@@ -95,10 +108,15 @@
         }
 
         video {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: auto;
+            height: 100%;
+            object-fit: cover; /* Cover the container while maintaining aspect ratio */
             display: block;
             border-radius: 20px;
+            transform: scaleX(-1); /* Mirror the video for user's perspective */
         }
 
         .face-indicator {
@@ -112,6 +130,7 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             transition: all 0.3s ease;
+            z-index: 10; /* Ensure it's above the video */
         }
 
         .face-detected {
@@ -189,6 +208,7 @@
             border-radius: 20px;
             padding: 20px;
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+            width: 100%; /* Make progress bar responsive */
         }
 
         .progress-label {
@@ -240,7 +260,8 @@
             border-radius: 25px;
             padding: 30px;
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-            height: 400px;
+            height: 400px; /* Fixed height for the chart container */
+            margin-top: 20px; /* Margin above chart */
         }
 
         .chart-title {
@@ -270,7 +291,7 @@
         canvas {
             border-radius: 15px;
             background: rgba(255, 255, 255, 0.05);
-            width: 100% !important;
+            width: 100% !important; /* Ensure canvas fills its container */
             height: 300px !important;
         }
 
@@ -285,18 +306,37 @@
             border-radius: 25px;
             font-weight: 500;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            transform: translateX(400px);
+            transform: translateX(400px); /* Initially hidden off-screen */
             transition: transform 0.3s ease;
             z-index: 1000;
         }
 
         .status-message.show {
-            transform: translateX(0);
+            transform: translateX(0); /* Show by sliding in */
+        }
+
+        #resetButton {
+            padding: 12px 25px;
+            background: linear-gradient(45deg, #FF5722, #FFC107); /* Orange/Yellow gradient */
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            margin-top: 30px; /* Space above button */
+        }
+
+        #resetButton:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
 
         @media (max-width: 768px) {
             .main-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr; /* Stack columns on small screens */
                 gap: 20px;
             }
 
@@ -311,37 +351,25 @@
             .status-message {
                 bottom: 20px;
                 right: 20px;
-                left: 20px;
+                left: 20px; /* Full width on small screens */
                 text-align: center;
             }
-        }
 
-        /* Loading animation */
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin-left: 10px;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+            .video-container {
+                padding-bottom: 56.25%; /* 16:9 aspect ratio for better mobile viewing */
+                max-width: 100%; /* Mobil cihazlarda ekranı doldurması için %100 kalır */
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>HeartSync Monitor</h1>
+        <h1>Heart Rate Monitor</h1>
 
         <div class="main-grid">
             <div class="video-section">
                 <div class="video-container">
-                    <video id="video" autoplay muted></video>
-                    <div id="faceStatus" class="face-indicator face-not-detected">Face: Not Detected</div>
+                    <video id="video" autoplay muted playsinline></video> <div id="faceStatus" class="face-indicator face-not-detected">Face: Not Detected</div>
                 </div>
 
                 <div class="progress-section">
@@ -370,18 +398,19 @@
             </div>
             <canvas id="bpmChart" width="600" height="300"></canvas>
         </div>
+
+        <button id="resetButton">Reset Measurement</button>
     </div>
 
     <div id="statusMessage" class="status-message">
         Please wait, measuring heart rate...
     </div>
 
-    <!-- Face detection -->
-    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <!-- Chart library -->
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
+        // --- Global Variables ---
         let mediaRecorder;
         let recordedChunks = [];
         const video = document.getElementById('video');
@@ -390,16 +419,20 @@
         const bpmBox = document.getElementById('bpmBox');
         const bpmStatus = document.getElementById('bpmStatus');
         const statusMessage = document.getElementById('statusMessage');
-        const bpmChart = document.getElementById('bpmChart').getContext('2d');
+        const bpmChartCanvas = document.getElementById('bpmChart').getContext('2d');
+        const resetButton = document.getElementById('resetButton');
 
-        let isRecording = false;
-        let faceDetected = false;
-        let firstRecording = true;
-        let bpmData = [];
-        let labels = [];
+        let isRecording = false; // Flag to check if video recording is active
+        let faceDetected = false; // Flag to track face detection status
+        let firstRecording = true; // Flag for the initial longer recording (15 seconds)
+        let bpmData = []; // Stores BPM values for the chart
+        let labels = []; // Stores time labels for the chart
 
-        // Enhanced Chart.js setup
-        const chart = new Chart(bpmChart, {
+        // IMPORTANT: Replace with your actual Flask server URL (e.g., your ngrok URL)
+        const FLASK_SERVER_URL = 'https://8669-176-220-213-166.ngrok-free.app'; // <--- !!! CHANGE THIS !!!
+
+        // --- Chart.js Setup ---
+        const chart = new Chart(bpmChartCanvas, {
             type: 'line',
             data: {
                 labels: labels,
@@ -409,12 +442,12 @@
                     borderColor: '#4ecdc4',
                     backgroundColor: 'rgba(78, 205, 196, 0.1)',
                     borderWidth: 3,
-                    tension: 0.4,
+                    tension: 0.4, // Smooth curve
                     pointBackgroundColor: '#4ecdc4',
                     pointBorderColor: '#ffffff',
                     pointBorderWidth: 2,
                     pointRadius: 6,
-                    fill: true
+                    fill: true // Fill area under the line
                 }]
             },
             options: {
@@ -424,78 +457,85 @@
                     legend: {
                         labels: {
                             color: 'rgba(255, 255, 255, 0.8)',
-                            font: {
-                                family: 'Inter',
-                                weight: 500
+                            font: { family: 'Inter', weight: 500 }
+                        }
+                    },
+                    tooltip: { // Customize tooltips for better readability
+                        callbacks: {
+                            label: function(context) {
+                                return `BPM: ${context.parsed.y || '--'}`;
                             }
                         }
                     }
                 },
                 scales: {
                     x: {
-                        ticks: {
-                            color: 'rgba(255, 255, 255, 0.6)'
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        }
+                        ticks: { color: 'rgba(255, 255, 255, 0.6)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
                     },
                     y: {
                         suggestedMin: 40,
                         suggestedMax: 160,
-                        ticks: {
-                            color: 'rgba(255, 255, 255, 0.6)'
-                        },
-                        grid: {
-                            color: 'rgba(255, 255, 255, 0.1)'
-                        }
+                        ticks: { color: 'rgba(255, 255, 255, 0.6)' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' }
                     }
                 }
             }
         });
 
-        function showStatusMessage(message) {
+        // --- UI Feedback Functions ---
+
+        function showStatusMessage(message, isPersistent = false) {
+            // Displays a transient or persistent status message to the user.
             statusMessage.textContent = message;
             statusMessage.classList.add('show');
-            setTimeout(() => {
-                statusMessage.classList.remove('show');
-            }, 3000);
+            if (!isPersistent) {
+                // If not persistent, hide after 3 seconds
+                setTimeout(() => {
+                    statusMessage.classList.remove('show');
+                }, 3000);
+            }
         }
 
         function getCurrentTime() {
+            // Returns current time formatted as HH:MM:SS
             const now = new Date();
             return now.toLocaleTimeString();
         }
 
+        // --- Camera and Recording Setup ---
+
         async function setupCamera() {
+            // Initializes the user's camera and sets up the video stream.
             try {
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error('Camera access not supported in this browser');
+                    throw new Error('Camera access not supported in this browser.');
                 }
 
                 showStatusMessage('Requesting camera access...');
 
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        width: { ideal: 640 },
+                        width: { ideal: 640 }, // Prefer 640x480 resolution
                         height: { ideal: 480 },
-                        facingMode: 'user'
+                        facingMode: 'user' // Use the front camera
                     },
-                    audio: false
+                    audio: false // No audio needed for heart rate monitoring
                 });
 
-                video.srcObject = stream;
-                setupRecorder(stream);
+                video.srcObject = stream; // Assign stream to video element
+                setupRecorder(stream); // Setup MediaRecorder with the stream
                 showStatusMessage('Camera initialized successfully!');
 
                 video.addEventListener('loadedmetadata', () => {
-                    video.play();
+                    video.play(); // Start playing video once metadata is loaded
                 });
 
             } catch (error) {
                 console.error('Camera setup error:', error);
                 let errorMessage = 'Camera access failed. ';
 
+                // Provide specific error messages based on common permission issues
                 if (error.name === 'NotAllowedError') {
                     errorMessage += 'Please allow camera permissions and refresh the page.';
                 } else if (error.name === 'NotFoundError') {
@@ -506,8 +546,9 @@
                     errorMessage += 'Please check your camera and try again.';
                 }
 
-                showStatusMessage(errorMessage);
+                showStatusMessage(errorMessage, true); // Make camera error message persistent
 
+                // Display a prominent error message directly in the video container
                 const errorDiv = document.createElement('div');
                 errorDiv.style.cssText = `
                     position: absolute;
@@ -521,6 +562,7 @@
                     text-align: center;
                     max-width: 300px;
                     font-weight: 500;
+                    z-index: 20;
                 `;
                 errorDiv.innerHTML = `
                     <div style="font-size: 18px; margin-bottom: 10px;">🚫 Camera Access Required</div>
@@ -541,25 +583,33 @@
         }
 
         function setupRecorder(stream) {
+            // Configures the MediaRecorder to capture video chunks.
             mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
 
             mediaRecorder.ondataavailable = function (e) {
+                // Collect video data chunks
                 if (e.data.size > 0) {
                     recordedChunks.push(e.data);
                 }
             };
 
             mediaRecorder.onstop = function () {
+                // When recording stops, combine chunks into a Blob and upload.
                 const blob = new Blob(recordedChunks, { type: 'video/webm' });
-                uploadVideo(blob);
-                recordedChunks = [];
-                isRecording = false;
+                console.log("Recorded Blob size:", blob.size);
+                uploadVideo(blob); // Send the video blob to the server
+                recordedChunks = []; // Clear chunks for the next recording
+                isRecording = false; // Update recording status
             };
         }
 
         async function startFaceDetection() {
+            // Loads face-api.js models and starts continuous face detection.
             try {
+                // Load the tiny face detector model (lightweight and fast)
                 await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+
+                // Periodically detect faces and update UI
                 setInterval(async () => {
                     const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
                     if (detections.length > 0) {
@@ -571,79 +621,114 @@
                         faceStatus.textContent = "Face: Not Detected";
                         faceStatus.className = "face-indicator face-not-detected";
                     }
-                }, 1000);
+                }, 1000); // Check for face every second
             } catch (error) {
                 console.error('Face detection setup error:', error);
-                showStatusMessage('Failed to load face detection model.');
+                showStatusMessage('Failed to load face detection model. Please check network.', true);
             }
         }
 
         function startRecording() {
-            if (faceDetected) {
+            // Starts video recording if a face is detected and recorder is ready.
+            if (faceDetected && mediaRecorder && mediaRecorder.state === "inactive") {
                 mediaRecorder.start();
                 isRecording = true;
                 showStatusMessage('Recording heart rate data...');
+                progressBarFill.style.width = '0%'; // Reset progress bar for new recording
+            } else if (!faceDetected) {
+                 showStatusMessage('Face not detected. Please position your face in front of the camera to start recording.', true);
+            } else if (mediaRecorder && mediaRecorder.state === "recording") {
+                console.log("MediaRecorder already recording.");
             }
         }
 
         function stopRecording() {
-            if (isRecording) {
+            // Stops the current video recording.
+            if (isRecording && mediaRecorder && mediaRecorder.state === "recording") {
                 mediaRecorder.stop();
             }
         }
 
+        // --- Server Communication ---
+
         function uploadVideo(blob) {
+            // Sends the recorded video blob to the Flask server for processing.
+            if (blob.size === 0) {
+                console.warn("⚠️ Empty video blob will not be sent to the server.");
+                showStatusMessage("No video recorded or face not detected in segment.");
+                return;
+            }
+
             const formData = new FormData();
-            formData.append('file', blob, 'recorded_video.webm');
+            formData.append('file', blob, 'recorded_video.webm'); // 'recorded_video.webm' is the filename on the server
 
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'https://65bb-95-183-239-88.ngrok-free.app/upload', true);
+            xhr.open('POST', `${FLASK_SERVER_URL}/upload`, true); // Send to the /upload endpoint
 
+            // Update progress bar during upload
             xhr.upload.onprogress = function (e) {
                 if (e.lengthComputable) {
                     const percentComplete = (e.loaded / e.total) * 100;
                     progressBarFill.style.width = percentComplete + '%';
+                    showStatusMessage(`Uploading video: ${percentComplete.toFixed(0)}%`, true);
                 }
             };
 
             xhr.onload = function () {
+                // Handle server response
+                progressBarFill.style.width = '100%'; // Complete progress bar on load
+
                 try {
+                    const result = JSON.parse(xhr.responseText);
+                    console.log('✅ Server response (Status:', xhr.status, 'Text:', result);
+
                     if (xhr.status === 200) {
-                        const result = JSON.parse(xhr.responseText);
-                        console.log('Server response:', result); // Debugging
-                        const bpm = result.bpm || '--'; // Ensure bpm is extracted or fallback
-                        updateBpmDisplay(bpm);
-                        addBpmData(bpm);
-                        showStatusMessage('Heart rate calculated successfully!');
+                        // Success: BPM calculated and returned
+                        if (result.bpm !== undefined && result.bpm !== '--' && !isNaN(result.bpm)) {
+                            updateBpmDisplay(result.bpm);
+                            addBpmData(result.bpm);
+                            showStatusMessage('Heart rate calculated successfully!', false);
+                        } else {
+                            // Server returned 200 but BPM is not valid (e.g., algorithm failed internally)
+                            updateBpmDisplay('--');
+                            showStatusMessage('Server processed video, but could not calculate BPM.', false);
+                        }
+                    } else if (xhr.status === 202) {
+                        // Accepted: Server is collecting more data, not enough for final BPM yet
+                        updateBpmDisplay(result.bpm); // May be '--' or a preliminary number
+                        showStatusMessage(result.message, true); // Display server's message (e.g., "Collecting more data...")
                     } else {
-                        console.error('Server error:', xhr.status, xhr.statusText);
+                        // Error from server (e.g., 400 Bad Request, 500 Internal Server Error)
+                        console.error('❌ Server error:', xhr.status, xhr.statusText, result);
                         updateBpmDisplay('--');
-                        showStatusMessage('Error occurred during processing!');
+                        showStatusMessage(`Server error (${xhr.status}): ${result.message || 'Unknown error.'}`, false);
                     }
                 } catch (error) {
-                    console.error('Response parsing error:', error);
+                    // JSON parsing error or other client-side issue with response
+                    console.error('❌ Response parsing error or unexpected server response:', error, xhr.responseText);
                     updateBpmDisplay('--');
-                    showStatusMessage('Invalid server response!');
+                    showStatusMessage('Invalid server response or network issue!', false);
                 }
             };
 
             xhr.onerror = function () {
-                console.error('Network error during upload');
+                // Network error (e.g., server unreachable, CORS issues)
+                console.error('❌ Network error occurred during upload.');
                 updateBpmDisplay('--');
-                showStatusMessage('Connection error!');
+                showStatusMessage('Connection error! Check server and internet.', false);
             };
 
-            xhr.send(formData);
+            xhr.send(formData); // Send the form data
         }
 
         function updateBpmDisplay(bpm) {
-            // Ensure BPM is a valid number or fallback to '--'
-            const displayBpm = (bpm !== undefined && !isNaN(bpm) && bpm !== '--') ? Math.round(bpm) : '--';
+            // Updates the BPM display box and status (Low, Normal, High).
+            const displayBpm = (bpm !== undefined && bpm !== '--' && !isNaN(bpm)) ? Math.round(bpm) : '--';
             bpmBox.textContent = displayBpm;
 
             if (displayBpm === '--') {
-                bpmStatus.textContent = 'Initializing';
-                bpmStatus.className = 'bpm-status status-normal';
+                bpmStatus.textContent = 'Measuring...';
+                bpmStatus.className = 'bpm-status status-normal'; // Use 'normal' color for 'measuring' state
             } else {
                 const bpmValue = parseInt(displayBpm);
                 if (bpmValue < 60) {
@@ -660,49 +745,86 @@
         }
 
         function addBpmData(bpm) {
+            // Adds a new BPM data point to the chart.
             const now = getCurrentTime();
             labels.push(now);
-            // Only add numeric BPM values to the chart
+            // Push BPM value as a number; use null for '--' so Chart.js handles gaps
             bpmData.push(bpm !== '--' && !isNaN(bpm) ? parseFloat(bpm) : null);
 
-            if (labels.length > 20) {
-                labels.shift();
-                bpmData.shift();
+            if (labels.length > 20) { // Keep only the last 20 data points for readability
+                labels.shift(); // Remove oldest label
+                bpmData.shift(); // Remove oldest BPM data
             }
 
-            chart.update();
+            chart.update(); // Update the chart to reflect new data
+        }
+
+        async function resetMeasurement() {
+            // Sends a request to the server to reset its accumulated signal data.
+            showStatusMessage('Resetting measurement data...', true);
+            try {
+                const response = await fetch(`${FLASK_SERVER_URL}/reset`, { method: 'POST' });
+                const result = await response.json();
+                if (response.ok) {
+                    bpmData = []; // Clear local chart data
+                    labels = [];
+                    chart.update();
+                    updateBpmDisplay('--'); // Reset BPM display
+                    showStatusMessage('Measurement reset successfully!', false);
+                    firstRecording = true; // Reset the flag for the initial 15-sec recording
+                } else {
+                    showStatusMessage(`Failed to reset measurement: ${result.message || 'Unknown error'}`, false);
+                }
+            } catch (error) {
+                console.error('Error resetting measurement:', error);
+                showStatusMessage('Network error during reset operation.', false);
+            }
         }
 
         async function startSystem() {
-            showStatusMessage('Initializing HeartSync Monitor...');
+            // Main function to initialize the entire system.
+            // First, reset any old data on the server.
+            await resetMeasurement();
+
+            showStatusMessage('Initializing Heart Rate Monitor...');
 
             try {
-                await setupCamera();
-                await startFaceDetection();
+                await setupCamera(); // Setup camera stream
+                await startFaceDetection(); // Start continuous face detection
 
+                // Initial longer recording (15 seconds) to collect sufficient data for first stable BPM
                 if (firstRecording) {
                     setTimeout(() => {
-                        startRecording();
+                        recordedChunks = []; // Ensure empty before first recording
+                        startRecording(); // Start initial recording
+
                         setTimeout(() => {
-                            stopRecording();
-                            firstRecording = false;
+                            stopRecording(); // Stop initial recording after 15 seconds
+                            firstRecording = false; // Mark initial recording as complete
+
+                            // Set up interval for subsequent 2-second recordings
                             setInterval(() => {
-                                if (!isRecording) {
-                                    startRecording();
-                                    setTimeout(stopRecording, 2000);
+                                if (!isRecording && faceDetected) { // Only record if not already recording and face is detected
+                                    recordedChunks = []; // Clear chunks for each new 2-sec recording
+                                    startRecording(); // Start new 2-sec recording
+                                    setTimeout(stopRecording, 2000); // Stop after 2 seconds
+                                } else if (!faceDetected) {
+                                    showStatusMessage('Face not detected, recording paused.', true); // Persistent message
                                 }
-                            }, 2000);
-                        }, 15000);
-                    }, 2000);
+                            }, 2000); // Start a new 2-second recording every 2 seconds
+                        }, 15000); // Initial recording duration: 15 seconds
+                    }, 2000); // Wait 2 seconds after camera is set up before starting first recording
                 }
             } catch (error) {
                 console.error('System startup error:', error);
-                showStatusMessage('Failed to initialize system. Please refresh and try again.');
+                showStatusMessage('Failed to initialize system. Please refresh and try again.', true);
             }
         }
 
+        // --- Event Listeners ---
         window.addEventListener('load', () => {
-            startSystem();
+            startSystem(); // Start the system when the page loads
+            resetButton.addEventListener('click', resetMeasurement); // Add event listener to the reset button
         });
     </script>
 </body>
