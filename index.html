@@ -2,101 +2,383 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Live BPM Monitor</title>
+    <title>HeartSync - Live BPM Monitor</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #f0f2f5;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #2D1B69 0%, #11998E 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Animated background particles */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+            animation: float 6s ease-in-out infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        .container {
             display: flex;
             flex-direction: column;
             align-items: center;
+            padding: 20px;
             min-height: 100vh;
-            margin: 0;
-            padding-top: 20px;
+            backdrop-filter: blur(10px);
         }
 
         h1 {
-            color: #333;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 30px;
+            text-align: center;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 3s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 30px;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 30px;
+        }
+
+        .video-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .video-container {
+            position: relative;
+            border-radius: 20px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
             margin-bottom: 20px;
         }
 
         video {
-            width: 80%;
-            max-width: 600px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        #statusMessage {
-            font-size: 20px;
-            margin: 10px;
-            color: #555;
-        }
-
-        #bpmBox {
-            width: 250px;
-            height: 150px;
-            background: linear-gradient(135deg, #4CAF50, #81C784);
+            width: 100%;
+            height: auto;
+            display: block;
             border-radius: 20px;
+        }
+
+        .face-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .face-detected {
+            background: rgba(76, 175, 80, 0.8);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .face-not-detected {
+            background: rgba(244, 67, 54, 0.8);
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .stats-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .bpm-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .bpm-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .bpm-label {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .bpm-value {
+            font-size: 4rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .bpm-status {
+            font-size: 14px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .status-normal { background: rgba(76, 175, 80, 0.8); color: white; }
+        .status-low { background: rgba(33, 150, 243, 0.8); color: white; }
+        .status-high { background: rgba(244, 67, 54, 0.8); color: white; }
+
+        .progress-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .progress-label {
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #44a08d);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 1200px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 25px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            height: 400px;
+        }
+
+        .chart-title {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 48px;
-            font-weight: bold;
-            color: white;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            transition: background 0.5s;
+            gap: 10px;
         }
 
-        #progressBar {
-            width: 80%;
-            max-width: 600px;
-            background-color: #ddd;
-            border-radius: 5px;
-            overflow: hidden;
-            margin-bottom: 30px;
+        .heartbeat-icon {
+            width: 24px;
+            height: 24px;
+            fill: #ff6b6b;
+            animation: heartbeat 1.5s ease-in-out infinite;
         }
 
-        #progressBarFill {
-            width: 0%;
-            height: 20px;
-            background-color: #4CAF50;
-            text-align: center;
-            line-height: 20px;
-            color: white;
-            transition: width 0.3s;
-        }
-
-        #faceStatus {
-            font-weight: bold;
-            margin: 10px;
-            color: red;
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
         }
 
         canvas {
-            background: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            width: 100% !important;
+            height: 300px !important;
+        }
+
+        .status-message {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            font-weight: 500;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .status-message.show {
+            transform: translateX(0);
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .bpm-value {
+                font-size: 3rem;
+            }
+
+            .status-message {
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+                text-align: center;
+            }
+        }
+
+        /* Loading animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <h1>Real-time BPM Monitor</h1>
-    <div id="faceStatus">Face: Not Detected</div>
-    <video id="video" autoplay muted></video>
-    <div id="statusMessage">Lütfen bekleyin, ölçüm yapılıyor...</div>
-    <div id="bpmBox">--</div>
-    <div id="progressBar">
-        <div id="progressBarFill">0%</div>
-    </div>
-    <canvas id="bpmChart" width="600" height="300"></canvas>
+    <div class="container">
+        <h1>HeartSync Monitor</h1>
 
-    <!-- Yüz algılama -->
+        <div class="main-grid">
+            <div class="video-section">
+                <div class="video-container">
+                    <video id="video" autoplay muted></video>
+                    <div id="faceStatus" class="face-indicator face-not-detected">Face: Not Detected</div>
+                </div>
+
+                <div class="progress-section">
+                    <div class="progress-label">Processing Heart Rate</div>
+                    <div class="progress-bar">
+                        <div id="progressBarFill" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-panel">
+                <div class="bpm-card">
+                    <div class="bpm-label">Heart Rate</div>
+                    <div id="bpmBox" class="bpm-value">--</div>
+                    <div id="bpmStatus" class="bpm-status status-normal">Initializing</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-title">
+                <svg class="heartbeat-icon" viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+                Real-time Heart Rate Monitoring
+            </div>
+            <canvas id="bpmChart" width="600" height="300"></canvas>
+        </div>
+    </div>
+
+    <div id="statusMessage" class="status-message">
+        Please wait, measuring heart rate...
+    </div>
+
+    <!-- Face detection -->
     <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <!-- Grafik kütüphanesi -->
+    <!-- Chart library -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
@@ -106,16 +388,17 @@
         const progressBarFill = document.getElementById('progressBarFill');
         const faceStatus = document.getElementById('faceStatus');
         const bpmBox = document.getElementById('bpmBox');
+        const bpmStatus = document.getElementById('bpmStatus');
         const statusMessage = document.getElementById('statusMessage');
         const bpmChart = document.getElementById('bpmChart').getContext('2d');
 
         let isRecording = false;
         let faceDetected = false;
         let firstRecording = true;
-        let bpmData = []; // BPM geçmişi
-        let labels = [];  // Zaman etiketleri
+        let bpmData = [];
+        let labels = [];
 
-        // Chart.js grafik ayarı
+        // Enhanced Chart.js setup
         const chart = new Chart(bpmChart, {
             type: 'line',
             data: {
@@ -123,21 +406,61 @@
                 datasets: [{
                     label: 'BPM',
                     data: bpmData,
-                    borderColor: '#4CAF50',
-                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    borderColor: '#4ecdc4',
+                    backgroundColor: 'rgba(78, 205, 196, 0.1)',
                     borderWidth: 3,
-                    tension: 0.4
+                    tension: 0.4,
+                    pointBackgroundColor: '#4ecdc4',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    fill: true
                 }]
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            font: {
+                                family: 'Inter',
+                                weight: 500
+                            }
+                        }
+                    }
+                },
                 scales: {
+                    x: {
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
+                    },
                     y: {
                         suggestedMin: 40,
-                        suggestedMax: 160
+                        suggestedMax: 160,
+                        ticks: {
+                            color: 'rgba(255, 255, 255, 0.6)'
+                        },
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        }
                     }
                 }
             }
         });
+
+        function showStatusMessage(message) {
+            statusMessage.textContent = message;
+            statusMessage.classList.add('show');
+            setTimeout(() => {
+                statusMessage.classList.remove('show');
+            }, 3000);
+        }
 
         function getCurrentTime() {
             const now = new Date();
@@ -145,9 +468,76 @@
         }
 
         async function setupCamera() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            video.srcObject = stream;
-            setupRecorder(stream);
+            try {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Camera access not supported in this browser');
+                }
+
+                showStatusMessage('Requesting camera access...');
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
+
+                video.srcObject = stream;
+                setupRecorder(stream);
+                showStatusMessage('Camera initialized successfully!');
+
+                video.addEventListener('loadedmetadata', () => {
+                    video.play();
+                });
+
+            } catch (error) {
+                console.error('Camera setup error:', error);
+                let errorMessage = 'Camera access failed. ';
+
+                if (error.name === 'NotAllowedError') {
+                    errorMessage += 'Please allow camera permissions and refresh the page.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage += 'No camera found on this device.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMessage += 'Camera not supported in this browser.';
+                } else {
+                    errorMessage += 'Please check your camera and try again.';
+                }
+
+                showStatusMessage(errorMessage);
+
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = `
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: rgba(244, 67, 54, 0.9);
+                    color: white;
+                    padding: 20px;
+                    border-radius: 15px;
+                    text-align: center;
+                    max-width: 300px;
+                    font-weight: 500;
+                `;
+                errorDiv.innerHTML = `
+                    <div style="font-size: 18px; margin-bottom: 10px;">🚫 Camera Access Required</div>
+                    <div style="font-size: 14px;">${errorMessage}</div>
+                    <button onclick="window.location.reload()" style="
+                        margin-top: 15px;
+                        padding: 8px 16px;
+                        background: white;
+                        color: #f44336;
+                        border: none;
+                        border-radius: 8px;
+                        font-weight: 500;
+                        cursor: pointer;
+                    ">Try Again</button>
+                `;
+                document.querySelector('.video-container').appendChild(errorDiv);
+            }
         }
 
         function setupRecorder(stream) {
@@ -168,26 +558,31 @@
         }
 
         async function startFaceDetection() {
-            await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
-            setInterval(async () => {
-                const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
-                if (detections.length > 0) {
-                    faceDetected = true;
-                    faceStatus.textContent = "Face: Detected";
-                    faceStatus.style.color = "green";
-                } else {
-                    faceDetected = false;
-                    faceStatus.textContent = "Face: Not Detected";
-                    faceStatus.style.color = "red";
-                }
-            }, 1000);
+            try {
+                await faceapi.nets.tinyFaceDetector.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+                setInterval(async () => {
+                    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions());
+                    if (detections.length > 0) {
+                        faceDetected = true;
+                        faceStatus.textContent = "Face: Detected";
+                        faceStatus.className = "face-indicator face-detected";
+                    } else {
+                        faceDetected = false;
+                        faceStatus.textContent = "Face: Not Detected";
+                        faceStatus.className = "face-indicator face-not-detected";
+                    }
+                }, 1000);
+            } catch (error) {
+                console.error('Face detection setup error:', error);
+                showStatusMessage('Failed to load face detection model.');
+            }
         }
 
         function startRecording() {
             if (faceDetected) {
                 mediaRecorder.start();
                 isRecording = true;
-                statusMessage.textContent = "Ölçüm yapılıyor...";
+                showStatusMessage('Recording heart rate data...');
             }
         }
 
@@ -202,50 +597,74 @@
             formData.append('file', blob, 'recorded_video.webm');
 
             const xhr = new XMLHttpRequest();
-            xhr.open('POST', 'https://f994-188-124-6-8.ngrok-free.app/upload', true);
-
+            xhr.open('POST', 'https://65bb-95-183-239-88.ngrok-free.app/upload', true);
 
             xhr.upload.onprogress = function (e) {
                 if (e.lengthComputable) {
                     const percentComplete = (e.loaded / e.total) * 100;
                     progressBarFill.style.width = percentComplete + '%';
-                    progressBarFill.textContent = Math.floor(percentComplete) + '%';
                 }
             };
 
             xhr.onload = function () {
-                if (xhr.status == 200) {
-                    const result = JSON.parse(xhr.responseText);
-                    updateBpmBox(result.bpm);
-                    addBpmData(result.bpm);
-                    statusMessage.textContent = "BPM Hesaplandı!";
-                } else {
-                    updateBpmBox('--');
-                    statusMessage.textContent = "Hata oluştu!";
+                try {
+                    if (xhr.status === 200) {
+                        const result = JSON.parse(xhr.responseText);
+                        console.log('Server response:', result); // Debugging
+                        const bpm = result.bpm || '--'; // Ensure bpm is extracted or fallback
+                        updateBpmDisplay(bpm);
+                        addBpmData(bpm);
+                        showStatusMessage('Heart rate calculated successfully!');
+                    } else {
+                        console.error('Server error:', xhr.status, xhr.statusText);
+                        updateBpmDisplay('--');
+                        showStatusMessage('Error occurred during processing!');
+                    }
+                } catch (error) {
+                    console.error('Response parsing error:', error);
+                    updateBpmDisplay('--');
+                    showStatusMessage('Invalid server response!');
                 }
             };
 
             xhr.onerror = function () {
-                updateBpmBox('--');
-                statusMessage.textContent = "Bağlantı hatası!";
+                console.error('Network error during upload');
+                updateBpmDisplay('--');
+                showStatusMessage('Connection error!');
             };
 
             xhr.send(formData);
         }
 
-        function updateBpmBox(bpm) {
-            bpmBox.textContent = bpm;
-            bpmBox.style.background = bpm < 60 ? 'linear-gradient(135deg, #2196F3, #64B5F6)'
-                                 : bpm > 100 ? 'linear-gradient(135deg, #f44336, #e57373)'
-                                 : 'linear-gradient(135deg, #4CAF50, #81C784)';
+        function updateBpmDisplay(bpm) {
+            // Ensure BPM is a valid number or fallback to '--'
+            const displayBpm = (bpm !== undefined && !isNaN(bpm) && bpm !== '--') ? Math.round(bpm) : '--';
+            bpmBox.textContent = displayBpm;
+
+            if (displayBpm === '--') {
+                bpmStatus.textContent = 'Initializing';
+                bpmStatus.className = 'bpm-status status-normal';
+            } else {
+                const bpmValue = parseInt(displayBpm);
+                if (bpmValue < 60) {
+                    bpmStatus.textContent = 'Low';
+                    bpmStatus.className = 'bpm-status status-low';
+                } else if (bpmValue > 100) {
+                    bpmStatus.textContent = 'High';
+                    bpmStatus.className = 'bpm-status status-high';
+                } else {
+                    bpmStatus.textContent = 'Normal';
+                    bpmStatus.className = 'bpm-status status-normal';
+                }
+            }
         }
 
         function addBpmData(bpm) {
             const now = getCurrentTime();
             labels.push(now);
-            bpmData.push(bpm);
+            // Only add numeric BPM values to the chart
+            bpmData.push(bpm !== '--' && !isNaN(bpm) ? parseFloat(bpm) : null);
 
-            // En fazla 20 data tutalım
             if (labels.length > 20) {
                 labels.shift();
                 bpmData.shift();
@@ -255,25 +674,36 @@
         }
 
         async function startSystem() {
-            await setupCamera();
-            await startFaceDetection();
+            showStatusMessage('Initializing HeartSync Monitor...');
 
-            if (firstRecording) {
-                startRecording();
-                setTimeout(() => {
-                    stopRecording();
-                    firstRecording = false;
-                    setInterval(() => {
-                        if (!isRecording) {
-                            startRecording();
-                            setTimeout(stopRecording, 2000); // 2 saniye kayıt
-                        }
+            try {
+                await setupCamera();
+                await startFaceDetection();
+
+                if (firstRecording) {
+                    setTimeout(() => {
+                        startRecording();
+                        setTimeout(() => {
+                            stopRecording();
+                            firstRecording = false;
+                            setInterval(() => {
+                                if (!isRecording) {
+                                    startRecording();
+                                    setTimeout(stopRecording, 2000);
+                                }
+                            }, 2000);
+                        }, 15000);
                     }, 2000);
-                }, 15000); // İlk 15 saniye uzun kayıt
+                }
+            } catch (error) {
+                console.error('System startup error:', error);
+                showStatusMessage('Failed to initialize system. Please refresh and try again.');
             }
         }
 
-        startSystem();
+        window.addEventListener('load', () => {
+            startSystem();
+        });
     </script>
 </body>
 </html>
